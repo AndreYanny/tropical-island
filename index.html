@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>My first three.js app</title>
+    <style>
+        body {
+            margin: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <script type="module">
+        import * as THREE from '../three.js/build/three.module.js';
+        import { OrbitControls } from '../three.js/examples/jsm/controls/OrbitControls.js';
+        import { MaterialLoader } from '../three.js/src/loaders/MaterialLoader.js';
+        import { ObjectLoader } from '../three.js/src/loaders/ObjectLoader.js';
+        import { TextureLoader } from '../three.js/src/loaders/TextureLoader.js';
+        import { GLTFLoader } from '../three.js/examples/jsm/loaders/GLTFLoader.js';
+        import { AmbientLight } from '../three.js/src/lights/AmbientLight.js';
+        import { MeshBasicMaterial } from '../three.js/src/materials/MeshBasicMaterial.js';
+        import { BoxGeometry } from '../three.js/src/geometries/BoxGeometry.js';
+        import { Water } from '../three.js/examples/jsm/objects/Water2.js';
+        import { Ocean } from '../three.js/examples/jsm/misc/Ocean.js';
+        import { GUI } from '../three.js/examples/jsm/libs/dat.gui.module.js';
+
+        //Init of the Scene and the Camera and the renderer
+        var The_Ship = null;
+        var water_main = null;
+        var Ocean_main = null;
+        var Fallen_Plane = null;
+        var Start_Time = (new Date()).getTime();
+        var Start_Movement = false;
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000000);
+        camera.position.x = -2000;
+        camera.position.y = 1300;
+        camera.position.z = -2000;
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        //Making adjestments to the size of the screen when it resize
+        window.addEventListener('resize', function () {
+            var width = window.innerWidth;
+            var height = window.innerHeight;
+            renderer.setSize(width, height);
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+        });
+        //Adding Mouse COntrols
+        const controls = new OrbitControls(camera, renderer.domElement);
+
+        //Adding The Directional Light
+        var directionalLight1 = new THREE.DirectionalLight(0xffffff, 1);
+        directionalLight1.position.set(-1200, 1600, 1200);
+        scene.add(directionalLight1);
+        //Another Light
+        var directionalLight2 = new THREE.DirectionalLight(0xffffff, 1);
+        directionalLight2.position.set(1200, 600, 1200);
+        scene.add(directionalLight2);
+
+        //Function to create Skybox
+        function createSkybox() {
+            //init an array for the materials
+            var materialArray = [];
+            //init loading the textures
+            var texture_ft = new TextureLoader().load('skybox/clouds1_east.bmp');
+            var texture_bk = new TextureLoader().load('skybox/clouds1_west.bmp');
+            var texture_up = new TextureLoader().load('skybox/clouds1_up.bmp');
+            var texture_dn = new TextureLoader().load('skybox/clouds1_down.bmp');
+            var texture_rt = new TextureLoader().load('skybox/clouds1_north.bmp');
+            var texture_lf = new TextureLoader().load('skybox/clouds1_south.bmp');
+            //pushing the materials into the array
+            materialArray.push(new MeshBasicMaterial({ map: texture_ft }));
+            materialArray.push(new MeshBasicMaterial({ map: texture_bk }));
+            materialArray.push(new MeshBasicMaterial({ map: texture_up }));
+            materialArray.push(new MeshBasicMaterial({ map: texture_dn }));
+            materialArray.push(new MeshBasicMaterial({ map: texture_rt }));
+            materialArray.push(new MeshBasicMaterial({ map: texture_lf }));
+            //making the skybox doubleside 
+            for (var i = 0; i < 6; i++) {
+                materialArray[i].side = THREE.DoubleSide;
+            }
+            //finishing and adding the skybox into the scene
+            var skyboxCube = new BoxGeometry(250000, 250000, 250000);
+            var skybox = new THREE.Mesh(skyboxCube, materialArray);
+            skybox.position.set(0, 0, 0);
+            scene.add(skybox);
+        }
+        //Calling the function to create Skybox
+        createSkybox()
+
+        //Function for creating water
+        function createWater() {
+            const waterGeometry = new THREE.PlaneBufferGeometry(250000, 250000, 10, 10);
+
+            var water = new Water(waterGeometry, {
+                color: 0xffffff,
+                scale: 4,
+                flowDirection: new THREE.Vector2(1, 1),
+                textureWidth: 1024,
+                textureHeight: 1024
+            });
+
+            water.position.y = -220;
+            water.rotation.x = Math.PI * - 0.5;
+            scene.add(water);
+            water_main = water;
+        }
+
+        //Calling the function to create the water
+        createWater();
+
+        //Functions for loading Objects along with thier materials and textures
+
+        //Loading the island
+        function loadIsland() {
+
+            var loader = new GLTFLoader();
+            loader.load('models/Island_4/scene.gltf', function (gltf) {
+                gltf.scene.position.set(-1000, 1900, 0);
+                gltf.scene.scale.set(1200, 1200, 1200);
+                scene.add(gltf.scene);
+            });
+        }
+
+        //Loading the light house
+        function loadlighthouse() {
+
+            var loader = new GLTFLoader();
+            loader.load('models/Random_models/Light_House/scene.gltf', function (gltf) {
+                gltf.scene.position.set(-13000, 1550, 1000);
+                gltf.scene.scale.set(900, 900, 900);
+                scene.add(gltf.scene);
+            });
+        }
+
+        //Loading the broken plane
+        function loadbrokenplane() {
+
+            var loader = new GLTFLoader();
+            loader.load('models/Random_models/Broken_Plan/scene.gltf', function (gltf) {
+                gltf.scene.position.set(-2600, 50000, 0);
+                gltf.scene.scale.set(1, 1, 1);
+                scene.add(gltf.scene);
+                Fallen_Plane = gltf.scene;
+            });
+        }
+
+        //Loading the water floor
+        function loadwaterfloor() {
+            var loader = new GLTFLoader();
+            loader.load('models/water_floor/scene.gltf', function (gltf) {
+                gltf.scene.position.set(123000, -10000, -123000);
+                gltf.scene.scale.set(60, 60, 60);
+                scene.add(gltf.scene);
+            });
+        }
+        //loading ship
+        function loadship() {
+
+            var loader = new GLTFLoader();
+            loader.load('models/Ship2/scene.gltf', function (gltf) {
+                gltf.scene.position.set(2000, -200, -12000);
+                gltf.scene.scale.set(9, 9, 9);
+                gltf.scene.rotation.set(0, 110, 0);
+                scene.add(gltf.scene);
+                The_Ship = gltf.scene;
+            });
+        }
+
+        //loading small islands
+        function loadsmallislands() {
+            var loader = new GLTFLoader();
+            //Small Island 1
+            loader.load('models/Random_models/Small_Island/scene.gltf', function (gltf) {
+                gltf.scene.position.set(-10000, -200, 20000);
+                gltf.scene.scale.set(3, 3, 3);
+                gltf.scene.rotation.set(0, 110, 0);
+                scene.add(gltf.scene);
+            });
+
+            // //Small Island 2
+            loader.load('models/Random_models/Small_Island/scene.gltf', function (gltf) {
+                gltf.scene.position.set(-10000, -200, -20000);
+                gltf.scene.scale.set(3, 3, 3);
+                gltf.scene.rotation.set(0, 280, 0);
+                scene.add(gltf.scene);
+            });
+
+            // //Small Island 3
+            loader.load('models/Random_models/Small_Island/scene.gltf', function (gltf) {
+                gltf.scene.position.set(10000, -200, -20000);
+                gltf.scene.scale.set(3, 3, 3);
+                gltf.scene.rotation.set(0, 0, 0);
+                scene.add(gltf.scene);
+            });
+
+            // //Small Island 4
+            loader.load('models/Random_models/Small_Island/scene.gltf', function (gltf) {
+                gltf.scene.position.set(-20000, -200, -10000);
+                gltf.scene.scale.set(3, 3, 3);
+                gltf.scene.rotation.set(0, 180, 0);
+                scene.add(gltf.scene);
+            });
+        }
+
+        //loading ruined cars
+        function loadruinedcars() {
+            var loader = new GLTFLoader();
+            //Small Car 1
+            loader.load('models/Random_models/Car/scene.gltf', function (gltf) {
+                gltf.scene.position.set(-9600, -200, 20000);
+                gltf.scene.scale.set(450, 450, 450);
+                gltf.scene.rotation.set(0, 110, 0);
+                scene.add(gltf.scene);
+            });
+
+            // // //Small Car 2
+            loader.load('models/Random_models/Car/scene.gltf', function (gltf) {
+                gltf.scene.position.set(-9600, -200, -20000);
+                gltf.scene.scale.set(450, 450, 450);
+                gltf.scene.rotation.set(0, 280, 0);
+                scene.add(gltf.scene);
+            });
+
+            // // //Small Car 3
+            loader.load('models/Random_models/Car/scene.gltf', function (gltf) {
+                gltf.scene.position.set(9600, -200, -20000);
+                gltf.scene.scale.set(450, 450, 450);
+                gltf.scene.rotation.set(0, 0, 0);
+                scene.add(gltf.scene);
+            });
+
+            // // //Small Car 4
+            loader.load('models/Random_models/Car/scene.gltf', function (gltf) {
+                gltf.scene.position.set(-19600, -200, -10000);
+                gltf.scene.scale.set(450, 450, 450);
+                gltf.scene.rotation.set(0, 180, 0);
+                scene.add(gltf.scene);
+            });
+        }
+
+        //Calling the loading functions so the objects appear on the scene
+        loadIsland();
+        loadship();
+        loadwaterfloor();
+        loadsmallislands();
+        loadruinedcars();
+        loadlighthouse();
+        loadbrokenplane();
+
+
+        var move_right = false;
+        //Scene Logic
+        var update = function () {
+
+            //Boat Movement
+            if (The_Ship !== null) {
+                if (The_Ship.position.z > -8900) {
+                    move_right = false;
+                    The_Ship.rotation.set(0, 110, 0);
+                }
+                else if (The_Ship.position.z < -45000) {
+                    move_right = true;
+                    The_Ship.rotation.set(0, 0, 0);
+                }
+
+                if (move_right) {
+                    The_Ship.position.z += 60;
+                }
+                else {
+                    The_Ship.position.z -= 60;
+                }
+            }
+
+            //Fallen Plane Movement
+            //From (-2600, 5500, 0)
+            //To (-1300, 500, 0);
+            if (Fallen_Plane !== null) {
+                const currentTime = new Date().getTime();
+                if (currentTime > Start_Time + 10000) {
+                    Start_Movement = true;
+                }
+                if (Start_Movement) {
+                    if (Fallen_Plane.position.x > -2700 && Fallen_Plane.position.x < -1350) {
+                        Fallen_Plane.position.x += 13.5;
+                        Fallen_Plane.rotation.x += 0.05;
+                        Fallen_Plane.rotation.z += 0.05;
+                    }
+                    if (Fallen_Plane.position.y < 101000 && Fallen_Plane.position.y > 1000) {
+                        Fallen_Plane.position.y -= 540.5;
+                    }
+                }
+            }
+
+        };
+
+        //Draw Scene
+        var render = function () {
+            renderer.render(scene, camera);
+        };
+
+        // Run Scene Loop(update, render, repeat)
+        var SceneLoop = function () {
+            requestAnimationFrame(SceneLoop);
+            update();
+            render();
+        };
+
+        SceneLoop();
+    </script>
+</body>
+
+</html>
