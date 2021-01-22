@@ -2,7 +2,7 @@
 <html>
 
 <head>
-    <title>My first three.js app</title>
+    <title>Tropical Island</title>
     <style>
         body {
             margin: 0;
@@ -143,7 +143,7 @@
             var loader = new GLTFLoader();
             loader.load('models/Random_models/Broken_Plan/scene.gltf', function (gltf) {
                 gltf.scene.position.set(-2600, 50000, 0);
-                gltf.scene.scale.set(1, 1, 1);
+                gltf.scene.scale.set(4, 4, 4);
                 scene.add(gltf.scene);
                 Fallen_Plane = gltf.scene;
             });
